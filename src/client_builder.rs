@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-
 use yup_oauth2::ServiceAccountKey;
 
 use crate::auth::{
@@ -13,6 +12,7 @@ use crate::{Client, BIG_QUERY_AUTH_URL, BIG_QUERY_V2_URL};
 pub struct ClientBuilder {
     v2_base_url: String,
     auth_base_url: String,
+    client: Option<reqwest::Client>
 }
 
 impl ClientBuilder {
@@ -20,6 +20,7 @@ impl ClientBuilder {
         Self {
             v2_base_url: BIG_QUERY_V2_URL.to_string(),
             auth_base_url: BIG_QUERY_AUTH_URL.to_string(),
+            client: None
         }
     }
 
@@ -33,8 +34,14 @@ impl ClientBuilder {
         self
     }
 
+    pub fn with_client(mut self, client: reqwest::Client) -> Self {
+        self.client = Some(client);
+        self
+    }
+
     pub async fn build_from_authenticator(&self, auth: Arc<dyn Authenticator>) -> Result<Client, BQError> {
-        let mut client = Client::from_authenticator(auth).await?;
+        let inner_client = self.client.clone().unwrap_or(reqwest::Client::new());
+        let mut client = Client::new(auth, inner_client.clone()).await?;
         client.v2_base_url(self.v2_base_url.clone());
         Ok(client)
     }
