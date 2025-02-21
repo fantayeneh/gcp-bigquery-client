@@ -74,6 +74,21 @@ pub struct Client {
 }
 
 impl Client {
+
+    pub(crate) async fn new(auth: Arc<dyn Authenticator>, client: reqwest::Client) -> Result<Self, BQError> {
+        let write_client = StorageApi::new_write_client().await?;
+        Ok(Self {
+            dataset_api: DatasetApi::new(client.clone(), Arc::clone(&auth)),
+            table_api: TableApi::new(client.clone(), Arc::clone(&auth)),
+            job_api: JobApi::new(client.clone(), Arc::clone(&auth)),
+            tabledata_api: TableDataApi::new(client.clone(), Arc::clone(&auth)),
+            routine_api: RoutineApi::new(client.clone(), Arc::clone(&auth)),
+            model_api: ModelApi::new(client.clone(), Arc::clone(&auth)),
+            project_api: ProjectApi::new(client, Arc::clone(&auth)),
+            storage_api: StorageApi::new(write_client, auth),
+        })
+    }
+
     pub async fn from_authenticator(auth: Arc<dyn Authenticator>) -> Result<Self, BQError> {
         let write_client = StorageApi::new_write_client().await?;
         let client = reqwest::Client::new();
